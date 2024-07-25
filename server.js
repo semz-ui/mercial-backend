@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import { v2 as cloudinary } from "cloudinary";
 import { connectDB } from "./db/connectDb.js";
 import cookieParser from "cookie-parser";
@@ -26,6 +27,7 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(cors());
 
 //Routes
 app.use("/api/users", userRoutes);
