@@ -53,7 +53,6 @@ const signupUser = async (req, res) => {
     });
     await newUser.save();
     if (newUser) {
-      generateTokenAndSetCookie(newUser._id, res);
       return res.status(201).json({
         _id: newUser._id,
         name: newUser.name,
@@ -61,7 +60,7 @@ const signupUser = async (req, res) => {
         username: newUser.username,
         bio: newUser.bio,
         profilePic: newUser.profilePic,
-        // token:newUser.token
+        token: generateTokenAndSetCookie(newUser._id),
       });
     } else {
       return res.status(400).json({ error: "Invalid user data" });
@@ -84,7 +83,6 @@ const loginUser = async (req, res) => {
         .status(400)
         .json({ error: "Invalid password please try again" });
     }
-    generateTokenAndSetCookie(user._id, res);
     res.status(200).json({
       _id: user._id,
       name: user.name,
@@ -92,6 +90,7 @@ const loginUser = async (req, res) => {
       username: user.username,
       bio: user.bio,
       profilePic: user.profilePic,
+      token: generateTokenAndSetCookie(user._id),
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

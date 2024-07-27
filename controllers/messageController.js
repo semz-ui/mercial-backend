@@ -4,7 +4,8 @@ import { getRecipientSocketId, io } from "../socket/socket.js";
 
 const sendMessage = async (req, res) => {
   try {
-    const { recipientId, message } = req.body;
+    const { recipientId, message } = await req.body;
+    console.log(req.body, "mloi");
     let { img } = req.body;
     const senderId = req.user._id;
 
