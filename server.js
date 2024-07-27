@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors());
 
-//Routes
+//Routesdd
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/message", messageRoutes);
