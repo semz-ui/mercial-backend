@@ -10,6 +10,14 @@ const messageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    senderData: {
+      username: {
+        type: String,
+      },
+      profilePic: {
+        type: String,
+      },
+    },
     text: String,
     seen: {
       type: Boolean,

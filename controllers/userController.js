@@ -251,6 +251,19 @@ const freezeAccount = async (req, res) => {
   }
 };
 
+// search for users
+const searchUsers = async (req, res) => {
+  const { searchText } = req.params;
+  try {
+    const users = await User.find({
+      username: { $regex: searchText, $options: "i" },
+    }).select("username profilePic _id");
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export {
   signupUser,
   loginUser,
@@ -260,4 +273,5 @@ export {
   getUserProfile,
   getSuggestedUsers,
   freezeAccount,
+  searchUsers,
 };

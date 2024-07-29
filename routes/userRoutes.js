@@ -6,6 +6,7 @@ import {
   getUserProfile,
   loginUser,
   logoutUser,
+  searchUsers,
   signupUser,
   updateUser,
 } from "../controllers/userController.js";
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.get("/profile/:query", getUserProfile);
 router.get("/suggested", protectRoute, getSuggestedUsers);
+router.get("/search/:searchText", protectRoute, searchUsers);
 router.post("/signup", signupUser);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);

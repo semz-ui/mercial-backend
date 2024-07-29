@@ -18,11 +18,20 @@ const io = new Server(server, {
 export const getRecipientSocketId = (recipientId) => {
   return userSocketMap[recipientId];
 };
+//  getRecipientSocketId for group message
+export const getGroupSocketIds = (participants) => {
+  const socketIds = [];
+  participants.forEach((participant) => {
+    if (userSocketMap[participant]) {
+      socketIds.push(userSocketMap[participant]);
+    }
+  });
+  return socketIds;
+};
 
 const userSocketMap = {}; // userId: socketId
 
 io.on("connection", (socket) => {
-  console.log("user connected", socket.id);
   const userId = socket.handshake.query.userId;
 
   if (userId != "undefined") userSocketMap[userId] = socket.id;
@@ -36,7 +45,7 @@ io.on("connection", (socket) => {
       );
       await Conversation.updateOne(
         { _id: conversationId },
-        { $set: { "lastMessage.seen": true } }
+        { $set: { "lastMessage.seen": true, "lastMessage.notSeenLength": 0 } }
       );
       io.to(userSocketMap[userId]).emit("messagesSeen", { conversationId });
     } catch (error) {
@@ -45,7 +54,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("user disconnected");
     delete userSocketMap[userId];
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });

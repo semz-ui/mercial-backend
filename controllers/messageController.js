@@ -1,17 +1,19 @@
 import Conversation from "../models/conversationModel.js";
 import Message from "../models/messageModel.js";
-import { getRecipientSocketId, io } from "../socket/socket.js";
+import User from "../models/userModels.js";
+import {
+  getGroupSocketIds,
+  getRecipientSocketId,
+  io,
+} from "../socket/socket.js";
 
 const sendMessage = async (req, res) => {
   try {
-    const { recipientId, message } = await req.body;
-    console.log(req.body, "mloi");
+    const { conversationId, recipientId, message } = await req.body;
     let { img } = req.body;
     const senderId = req.user._id;
 
-    let conversation = await Conversation.findOne({
-      participants: { $all: [senderId, recipientId] },
-    });
+    let conversation = await Conversation.findById(conversationId);
 
     if (!conversation) {
       conversation = new Conversation({
@@ -19,13 +21,14 @@ const sendMessage = async (req, res) => {
         lastMessage: {
           text: message,
           sender: senderId,
+          notSeenLength: +1,
         },
       });
       await conversation.save();
     }
 
     const newMessage = new Message({
-      conversationId: conversation._id,
+      conversationId: conversationId,
       sender: senderId,
       text: message,
       img: img || "",
@@ -33,15 +36,117 @@ const sendMessage = async (req, res) => {
 
     await Promise.all([
       newMessage.save(),
-      conversation.updateOne({
+      await conversation.updateOne({
         lastMessage: {
           text: message,
           sender: senderId,
+          notSeenLength: conversation.lastMessage.notSeenLength + 1,
         },
       }),
     ]);
 
-    const recepientSocketId = getRecipientSocketId(recipientId);
+    // get new update conversation
+    conversation = await Conversation.findById(conversationId);
+
+    if (!conversation.isGroup) {
+      const recepientSocketId = await getRecipientSocketId(recipientId);
+      if (recepientSocketId) {
+        io.to(recepientSocketId).emit("newMessage", newMessage);
+        io.to(recepientSocketId).emit("updateConversation", conversation);
+      }
+    }
+
+    if (conversation.isGroup) {
+      // remove senderId from participants array
+      const participantsId = conversation.participants.filter(
+        (id) => id.toString() !== senderId.toString()
+      );
+      const groupSocketIds = await getGroupSocketIds(participantsId);
+      groupSocketIds.forEach((socketId) => {
+        io.to(socketId).emit("newMessage", newMessage);
+        io.to(socketId).emit("updateConversation", conversation);
+      });
+    }
+
+    res.status(201).json(newMessage);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+// create group with minimum of 3 users
+const createGroup = async (req, res) => {
+  try {
+    const { groupMembers, groupName } = req.body;
+    // let { groupImg } = req.body;
+    const senderId = req.user._id;
+
+    if (groupMembers.length < 2) {
+      return res.status(400).json({
+        error: "Group must have at least 3 members",
+      });
+    }
+
+    const users = await User.find({
+      _id: { $in: groupMembers },
+    }).select("username profilePic _id");
+
+    const conversation = new Conversation({
+      participants: groupMembers,
+      admin: senderId,
+      lastMessage: {
+        text: `${req.user.username} created group ${groupName}`,
+        type: "alert",
+        sender: senderId,
+      },
+      group: {
+        groupName,
+        // groupImg,
+      },
+      members: users,
+      isGroup: true,
+    });
+
+    await conversation.save();
+
+    res.status(201).json(conversation);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+const sendGroupMessage = async (req, res) => {
+  try {
+    const { conversationId, message } = await req.body;
+    const senderId = req.user._id;
+
+    const conversation = await Conversation.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({
+        error: "Conversation not found",
+      });
+    }
+
+    if (!conversation.isGroup) {
+      return res.status(400).json({
+        error: "This is not a group conversation",
+      });
+    }
+
+    const newMessage = new Message({
+      conversationId: conversation._id,
+      sender: senderId,
+      text: message,
+    });
+
+    await newMessage.save();
+
+    const recepientSocketId = await getRecipientSocketId(conversationId);
     if (recepientSocketId) {
       io.to(recepientSocketId).emit("newMessage", newMessage);
     }
@@ -55,23 +160,34 @@ const sendMessage = async (req, res) => {
 };
 
 const getMessages = async (req, res) => {
-  const { otherUserId } = req.params;
-  const userId = req.user._id;
+  const { conversationId } = req.params;
   try {
-    const conversation = await Conversation.findOne({
-      participants: { $all: [userId, otherUserId] },
-    });
-
-    if (!conversation) {
-      return res.status(404).json({ error: "Conversation not found" });
-    }
-
     const messages = await Message.find({
-      conversationId: conversation._id,
+      conversationId: conversationId,
     }).sort({
       createdAt: 1,
     });
     res.status(200).json(messages);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+const getUnreadMessages = async (req, res) => {
+  const { conversationId } = req.params;
+  const userId = req.user._id;
+
+  try {
+    const messages = await Message.find({
+      conversationId: conversationId,
+      seen: false,
+    });
+    const filterMessage = messages.filter(
+      (message) => message.sender.toString() !== userId.toString()
+    );
+    res.status(200).json(filterMessage.length);
   } catch (error) {
     res.status(500).json({
       error: error.message,
@@ -102,4 +218,10 @@ const getConversations = async (req, res) => {
   }
 };
 
-export { sendMessage, getMessages, getConversations };
+export {
+  sendMessage,
+  getMessages,
+  getConversations,
+  getUnreadMessages,
+  createGroup,
+};

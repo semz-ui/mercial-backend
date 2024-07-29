@@ -155,11 +155,34 @@ const replyToPost = async (req, res) => {
   }
 };
 
-const getFeedPosts = async (req, res) => {
-  console.log("clicked");
+//  get all replies in a post for a particular user that replied to a post
+const getUserReplies = async (req, res) => {
   try {
     const userId = req.user._id;
-    console.log(userId, "po");
+
+    const findReplies = await Post.find({
+      "replies.userId": userId,
+    }).select({ replies: 1, _id: 1 });
+    res.status(200).json(findReplies);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const getUserLikes = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const findLikes = await Post.find({
+      likes: { $in: userId },
+    });
+    res.status(200).json(findLikes);
+  } catch (error) {}
+};
+
+const getFeedPosts = async (req, res) => {
+  try {
+    const userId = req.user._id;
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -185,4 +208,6 @@ export {
   replyToPost,
   getFeedPosts,
   getUserPosts,
+  getUserReplies,
+  getUserLikes,
 };
