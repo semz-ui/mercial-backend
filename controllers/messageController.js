@@ -9,7 +9,7 @@ import {
 
 const sendMessage = async (req, res) => {
   try {
-    const { conversationId, recipientId, message } = await req.body;
+    const { conversationId, recipientId, message, senderData } = await req.body;
     let { img } = req.body;
     const senderId = req.user._id;
 
@@ -31,6 +31,7 @@ const sendMessage = async (req, res) => {
       conversationId: conversationId,
       sender: senderId,
       text: message,
+      senderData: senderData,
       img: img || "",
     });
 
@@ -119,46 +120,6 @@ const createGroup = async (req, res) => {
   }
 };
 
-const sendGroupMessage = async (req, res) => {
-  try {
-    const { conversationId, message } = await req.body;
-    const senderId = req.user._id;
-
-    const conversation = await Conversation.findById(conversationId);
-
-    if (!conversation) {
-      return res.status(404).json({
-        error: "Conversation not found",
-      });
-    }
-
-    if (!conversation.isGroup) {
-      return res.status(400).json({
-        error: "This is not a group conversation",
-      });
-    }
-
-    const newMessage = new Message({
-      conversationId: conversation._id,
-      sender: senderId,
-      text: message,
-    });
-
-    await newMessage.save();
-
-    const recepientSocketId = await getRecipientSocketId(conversationId);
-    if (recepientSocketId) {
-      io.to(recepientSocketId).emit("newMessage", newMessage);
-    }
-
-    res.status(201).json(newMessage);
-  } catch (error) {
-    res.status(500).json({
-      error: error.message,
-    });
-  }
-};
-
 const getMessages = async (req, res) => {
   const { conversationId } = req.params;
   try {
@@ -167,6 +128,7 @@ const getMessages = async (req, res) => {
     }).sort({
       createdAt: 1,
     });
+    // get last message
     res.status(200).json(messages);
   } catch (error) {
     res.status(500).json({
