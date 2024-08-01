@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import User from "../models/userModels.js";
 import generateTokenAndSetCookie from "../utils/helpers/generateTokenAndSetCookie.js";
 import Post from "../models/postModel.js";
+import { getRecipientSocketId, io } from "../socket/socket.js";
 
 const getUserProfile = async (req, res) => {
   // We will fetch user profile either with username or userId
@@ -144,10 +145,10 @@ const followUnfollowUser = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const { name, email, username, password, bio } = req.body;
+  const { name, email, username, password, bio, peerId } = req.body;
   let { profilePic } = req.body;
 
-  const userId = req.user._id;
+  const userId = req.params.id;
   try {
     let user = await User.findById(userId);
     if (!user) return res.status(400).json({ message: "User does not exist" });
@@ -177,6 +178,7 @@ const updateUser = async (req, res) => {
     user.username = username || user.username;
     user.bio = bio || user.bio;
     user.profilePic = profilePic || user.profilePic;
+    user.peerId = peerId || user.peerId;
 
     await user.save();
 
@@ -196,6 +198,12 @@ const updateUser = async (req, res) => {
 
     // remove password from response
     user.password = null;
+
+    if (peerId) {
+      console.log("clicked");
+      const recepientSocketId = await getRecipientSocketId(userId);
+      io.to(recepientSocketId).emit("updateUserPeerId", user);
+    }
 
     res
       .status(200)

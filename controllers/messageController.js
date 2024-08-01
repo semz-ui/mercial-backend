@@ -77,6 +77,8 @@ const sendMessage = async (req, res) => {
   }
 };
 
+// call user
+
 // create group with minimum of 3 users
 const createGroup = async (req, res) => {
   try {
@@ -104,7 +106,6 @@ const createGroup = async (req, res) => {
       },
       group: {
         groupName,
-        // groupImg,
       },
       members: users,
       isGroup: true,

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
@@ -40,6 +41,10 @@ const userSchema = new mongoose.Schema(
     isFrozen: {
       type: Boolean,
       default: false,
+    },
+    peerId: {
+      type: Number,
+      default: crypto.randomUUID(),
     },
   },
   { timestamps: true }
