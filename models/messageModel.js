@@ -27,6 +27,14 @@ const messageSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    audio: {
+      type: String,
+      default: "",
+    },
+    video: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

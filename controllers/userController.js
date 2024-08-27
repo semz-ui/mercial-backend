@@ -91,6 +91,7 @@ const loginUser = async (req, res) => {
       username: user.username,
       bio: user.bio,
       profilePic: user.profilePic,
+      peerId: user.peerId,
       token: generateTokenAndSetCookie(user._id),
     });
   } catch (error) {

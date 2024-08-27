@@ -42,10 +42,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    peerId: {
-      type: Number,
-      default: crypto.randomUUID(),
-    },
   },
   { timestamps: true }
 );
