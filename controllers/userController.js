@@ -62,12 +62,15 @@ const signupUser = async (req, res) => {
         bio: newUser.bio,
         profilePic: newUser.profilePic,
         token: generateTokenAndSetCookie(newUser._id),
+        success: true,
       });
     } else {
-      return res.status(400).json({ error: "Invalid user data" });
+      return res
+        .status(400)
+        .json({ error: "Invalid user data", success: false });
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, success: false });
   }
 };
 
@@ -82,7 +85,7 @@ const loginUser = async (req, res) => {
     if (!isPasswordCorrest) {
       return res
         .status(400)
-        .json({ error: "Invalid password please try again" });
+        .json({ error: "Invalid password please try again", success: false });
     }
     res.status(200).json({
       _id: user._id,
@@ -93,9 +96,10 @@ const loginUser = async (req, res) => {
       profilePic: user.profilePic,
       peerId: user.peerId,
       token: generateTokenAndSetCookie(user._id),
+      success: true,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, success: false });
   }
 };
 

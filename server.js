@@ -19,6 +19,7 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_APIKEY,
   api_secret: process.env.CLOUDINARY_SECRET,
 });
+app.use(cors());
 
 app.use(
   express.json({
@@ -27,7 +28,6 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors());
 
 //Routesdd
 app.use("/api/users", userRoutes);

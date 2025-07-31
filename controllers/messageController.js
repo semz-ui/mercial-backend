@@ -10,14 +10,14 @@ import {
 
 const sendMessage = async (req, res) => {
   try {
-    const { conversationId, recipientId, message, senderData } = await req.body;
+    const { conversationId, recipientId, message, senderData, isMock } =
+      await req.body;
     let { img, audio } = req.body;
     const senderId = req.user._id;
+    let newConvo;
 
-    let conversation = await Conversation.findById(conversationId);
-
-    if (!conversation) {
-      conversation = new Conversation({
+    if (isMock === true) {
+      newConvo = new Conversation({
         participants: [senderId, recipientId],
         lastMessage: {
           text: message,
@@ -25,7 +25,7 @@ const sendMessage = async (req, res) => {
           notSeenLength: +1,
         },
       });
-      await conversation.save();
+      await newConvo.save();
     }
 
     if (img) {
@@ -38,8 +38,12 @@ const sendMessage = async (req, res) => {
       audio = uploadedResponse.secure_url;
     }
 
+    let conversation = await Conversation.findById(
+      isMock ? newConvo._id : conversationId
+    );
+
     const newMessage = new Message({
-      conversationId: conversationId,
+      conversationId: conversation._id,
       sender: senderId,
       text: message,
       senderData: senderData,
@@ -58,7 +62,9 @@ const sendMessage = async (req, res) => {
     ]);
 
     // get new update conversation
-    conversation = await Conversation.findById(conversationId);
+    conversation = await Conversation.findById(
+      isMock ? newConvo._id : conversationId
+    );
 
     if (!conversation.isGroup) {
       const recepientSocketId = await getRecipientSocketId(recipientId);
